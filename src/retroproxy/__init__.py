@@ -1,6 +1,7 @@
 
 import logging
 from flask import Flask, render_template, request
+from .config import Config
 uwsgi_present = False
 try:
     import uwsgi

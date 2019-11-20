@@ -1,0 +1,11 @@
+Click==7.0
+Flask==1.1.1
+Flask-WTF==0.14.2
+itsdangerous==1.1.0
+Jinja2==2.10.3
+MarkupSafe==1.1.1
+PyYAML==5.1.2
+Werkzeug==0.16.0
+WTForms==2.2.1
+Flask-Login==0.4.1
+is-safe-url==1.0

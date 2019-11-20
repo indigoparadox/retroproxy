@@ -2,6 +2,9 @@
 from urllib.parse import urlparse, urlunsplit
 
 def fix_netloc_port( url_in, url_port ):
+
+    ''' Given a URL, insder the given listening port next to the host. '''
+
     nl_url = urlparse( url_in )
     if nl_url.netloc:
         netloc = nl_url.netloc + url_port

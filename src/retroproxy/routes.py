@@ -22,9 +22,8 @@ def retroproxy_root( path ):
     port_match = PORT_PATTERN.match( str( url_netloc ) )
 
     url_netloc_noport = PORT_PATTERN.sub( r'\1', url_netloc )
-    url_scheme_netloc = urlunsplit(
-        (url.scheme, url_netloc_noport, '', '', '') )
 
+    # Grab the local listening port.
     url_port = ''
     if port_match:
         url_port = port_match.groups()[1]
@@ -38,7 +37,8 @@ def retroproxy_root( path ):
     print( url )
 
     # Submit the request to archive.org.
-    archive_url = 'https://web.archive.org/web/19990508070818/{}'.format( url )
+    archive_url = 'https://web.archive.org/web/{}/{}'.format(
+        current_app.config['WAYBACK_START'], url )
     response = requests.get( archive_url )
 
     if 404 == response.status_code:
@@ -51,11 +51,24 @@ def retroproxy_root( path ):
         # Add our listening port to the netloc.
         a['href'] = util.fix_netloc_port( a['href'], url_port )
 
+    # Fix for static CSS.
+    # TODO: Should these just be stripped?
+    for link in soup.findAll( 'link' ):
+        if link['href'].startswith( '/_static/' ):
+            link['href'] = 'https://web.archive.org{}'.format( link['href'] )
+
+    # Fix for images relative to web.archive.org.
+    for img in soup.findAll( 'img' ):
+        if img['src'].startswith( '/web/' ):
+            img['src'] = 'https://web.archive.org{}'.format( img['src'] )
+
+    # Fix for optional base tag.
     for base in soup.findAll( 'base' ):
         base['href'] = ARCHIVE_PATTERN.sub( '', base['href'] )
 
         base['href'] = util.fix_netloc_port( base['href'], url_port )
 
+    # Strip out archive modernity hacks.
     for script in soup.findAll( 'script', ):
         if 'src' in script.attrs and (
         'client-rewrite.js' in script.attrs['src'] or \

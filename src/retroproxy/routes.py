@@ -42,6 +42,7 @@ def retroproxy_root( path ):
         current_app.config['WAYBACK_START'], url )
     response = requests.get( archive_url )
 
+    logger.info( 'response: {}'.format( response.status_code ) )
     if 404 == response.status_code:
         abort( 404 )
 
@@ -59,7 +60,7 @@ def retroproxy_root( path ):
     ctype_match = HTML_TYPE_PATTERN.match( ctype )
     if ctype_match:
         text = util.process_html_links( response.text, url_port=url_port )
-        text = util.process_html_imgs( response.text, url_port=url_port )
+        text = util.process_html_imgs( text, url_port=url_port )
         out = Response( text, mimetype=ctype )
         out.headers = orig_headers
         return out

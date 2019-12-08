@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunsplit
 
 ARCHIVE_PATTERN = re.compile(
-    r'^((https?://web.archive.org)?/web/[0-9a-z_]*/)' )
+    r'^(https?://web.archive.org)?/web/[0-9a-z_]*/' )
 
 def fix_netloc_port( url_in, url_port ):
 
@@ -28,7 +28,10 @@ def process_html_links( text, url_port=80 ):
     soup = BeautifulSoup( text, 'html.parser' )
     for a in soup.findAll( 'a' ):
         try:
-            a['href'] = ARCHIVE_PATTERN.sub( '', a['href'] )
+            logger.info( a['href'] )
+            href = ARCHIVE_PATTERN.sub( '', a['href'] )
+            logger.info( '{} became: {}'.format( a['href'], href ) )
+            a['href'] = href
     
             # Add our listening port to the netloc.
             a['href'] = fix_netloc_port( a['href'], url_port )
@@ -59,9 +62,13 @@ def process_html_links( text, url_port=80 ):
     for script in soup.findAll( 'script', ):
         if 'src' in script.attrs and (
         'client-rewrite.js' in script.attrs['src'] or \
-        'wbhack.js' in script.attrs['src'] ) or \
+        'wbhack.js' in script.attrs['src'] or \
+        'archive.org/includes/analytics.js' in script.attrs['src'] ) or \
         'wbhack.' in script.text or \
-        'WB_wombat_Init' in script.text:
+        'WB_wombat_Init' in script.text or \
+        '__wbhack.init' in script.text or \
+        'archive_analytics.values' in script.text:
+            logger.info( 'removing script' )
             script.extract()
 
     return str( soup )

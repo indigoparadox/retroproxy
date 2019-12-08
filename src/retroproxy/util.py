@@ -1,5 +1,6 @@
 
 import re
+import logging
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunsplit
 
@@ -22,37 +23,30 @@ def fix_netloc_port( url_in, url_port ):
 
 def process_html_links( text, url_port=80 ):
 
+    logger = logging.getLogger( 'process.html.links' )
+
     soup = BeautifulSoup( text, 'html.parser' )
     for a in soup.findAll( 'a' ):
-        a['href'] = ARCHIVE_PATTERN.sub( '', a['href'] )
-
-        # Add our listening port to the netloc.
-        a['href'] = fix_netloc_port( a['href'], url_port )
+        try:
+            a['href'] = ARCHIVE_PATTERN.sub( '', a['href'] )
+    
+            # Add our listening port to the netloc.
+            a['href'] = fix_netloc_port( a['href'], url_port )
+        except Exception as e:
+            logger.warning( e )
 
     # Fix for static CSS.
     # TODO: Should these just be stripped?
     for link in soup.findAll( 'link' ):
         try:
             if link['href'].startswith( '/_static/' ):
-                link['href'] = \
-                    'https://web.archive.org{}'.format( link['href'] )
+                #link['href'] = \
+                #    'https://web.archive.org{}'.format( link['href'] )
+                link.extract()
         except Exception as e:
             logger.warning( e )
 
-    # Fix for images relative to web.archive.org.
-    #for img in soup.findAll( 'img' ):
-    #    if img['src'].startswith( '/web/' ):
-    #        img['src'] = 'https://web.archive.org{}'.format( img['src'] )
-
-    # Fix for all images.
-    for img in soup.findAll( 'img' ):
-        try:
-            img['src'] = ARCHIVE_PATTERN.sub( '', img['src'] )
-            img['src'] = fix_netloc_port( img['src'], url_port )
-        except Exception as e:
-            logger.warning( e )
-
-    # Fix for optional base tag.
+   # Fix for optional base tag.
     for base in soup.findAll( 'base' ):
         try:
             base['href'] = ARCHIVE_PATTERN.sub( '', base['href'] )
@@ -72,3 +66,24 @@ def process_html_links( text, url_port=80 ):
 
     return str( soup )
 
+def process_html_imgs( text, url_port=80 ):
+
+    logger = logging.getLogger( 'process.html.links' )
+
+    soup = BeautifulSoup( text, 'html.parser' )
+
+    # Fix for images relative to web.archive.org.
+    #for img in soup.findAll( 'img' ):
+    #    if img['src'].startswith( '/web/' ):
+    #        img['src'] = 'https://web.archive.org{}'.format( img['src'] )
+
+    # Fix for all images.
+    for img in soup.findAll( 'img' ):
+        try:
+            img['src'] = ARCHIVE_PATTERN.sub( '', img['src'] )
+            img['src'] = fix_netloc_port( img['src'], url_port )
+        except Exception as e:
+            logger.warning( e )
+
+    return str( soup )
+ 

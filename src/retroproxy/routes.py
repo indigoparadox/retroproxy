@@ -2,8 +2,9 @@
 import logging
 import requests
 import re
+import io
 from urllib.parse import urlparse, urlunsplit
-from flask import current_app, render_template, request, abort, Response
+from flask import current_app, render_template, request, abort, Response, send_file
 from . import util
 
 PORT_PATTERN = re.compile( r'(.*)(:[0-9]*)$' )
@@ -56,14 +57,15 @@ def retroproxy_root( path ):
     #clength = response.headers['content-length']
     ctype = response.headers['content-type']
     ctype_match = HTML_TYPE_PATTERN.match( ctype )
-    text = response.text
     if ctype_match:
-        text = util.process_html_links( text, url_port=url_port )
+        text = util.process_html_links( response.text, url_port=url_port )
+        text = util.process_html_imgs( response.text, url_port=url_port )
+        out = Response( text, mimetype=ctype )
+        out.headers = orig_headers
+        return out
     else:
         logger.info( 'unrecognized mimetype: {}'.format( ctype ) )
+        text = response.content
         #print( text )
-
-    out = Response( text, mimetype=ctype ) #, content_length=clength )
-    out.headers = orig_headers
-    return out
+        return send_file( io.BytesIO( text ), mimetype=ctype )
 

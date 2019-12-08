@@ -3,7 +3,8 @@ import re
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunsplit
 
-ARCHIVE_PATTERN = re.compile( r'^((https?://web.archive.org)?/web/[0-9a-z_]*/)' )
+ARCHIVE_PATTERN = re.compile(
+    r'^((https?://web.archive.org)?/web/[0-9a-z_]*/)' )
 
 def fix_netloc_port( url_in, url_port ):
 
@@ -39,9 +40,17 @@ def process_html_links( text, url_port=80 ):
             logger.warning( e )
 
     # Fix for images relative to web.archive.org.
+    #for img in soup.findAll( 'img' ):
+    #    if img['src'].startswith( '/web/' ):
+    #        img['src'] = 'https://web.archive.org{}'.format( img['src'] )
+
+    # Fix for all images.
     for img in soup.findAll( 'img' ):
-        if img['src'].startswith( '/web/' ):
-            img['src'] = 'https://web.archive.org{}'.format( img['src'] )
+        try:
+            img['src'] = ARCHIVE_PATTERN.sub( '', img['src'] )
+            img['src'] = fix_netloc_port( img['src'], url_port )
+        except Exception as e:
+            logger.warning( e )
 
     # Fix for optional base tag.
     for base in soup.findAll( 'base' ):

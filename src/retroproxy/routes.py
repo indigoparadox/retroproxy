@@ -3,10 +3,12 @@ import logging
 import requests
 import re
 from urllib.parse import urlparse, urlunsplit
-from flask import current_app, render_template, request, abort
+from flask import current_app, render_template, request, abort, Response
 from . import util
 
 PORT_PATTERN = re.compile( r'(.*)(:[0-9]*)$' )
+HTML_TYPE_PATTERN = re.compile( r'^([a-zA-Z]*/(html|HTML)).*' )
+HEADER_ORIG_PATTERN = re.compile( r'^X-Archive-Orig-(.*)$' )
 
 @current_app.route( '/', defaults={'path': ''} )
 @current_app.route( '/<path:path>' )
@@ -42,5 +44,26 @@ def retroproxy_root( path ):
     if 404 == response.status_code:
         abort( 404 )
 
-    return util.process_html_links( response.text, url_port=url_port )
+    # Grab the original headers from the archive.
+    orig_headers = {}
+    for hdr, val in response.headers.items():
+        match = HEADER_ORIG_PATTERN.match( hdr )
+        if match:
+            logger.info( 'orig header "{}": "{}"'.format( match.groups()[0],
+                val ) )
+            orig_headers[match.groups()[0]] = val
+
+    #clength = response.headers['content-length']
+    ctype = response.headers['content-type']
+    ctype_match = HTML_TYPE_PATTERN.match( ctype )
+    text = response.text
+    if ctype_match:
+        text = util.process_html_links( text, url_port=url_port )
+    else:
+        logger.info( 'unrecognized mimetype: {}'.format( ctype ) )
+        #print( text )
+
+    out = Response( text, mimetype=ctype ) #, content_length=clength )
+    out.headers = orig_headers
+    return out
 

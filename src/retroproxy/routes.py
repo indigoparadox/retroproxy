@@ -5,6 +5,7 @@ import re
 import io
 from urllib.parse import urlparse, urlunsplit
 from flask import current_app, render_template, request, abort, Response, send_file
+from bs4 import BeautifulSoup
 from . import util
 
 PORT_PATTERN = re.compile( r'(.*)(:[0-9]*)$' )
@@ -59,9 +60,11 @@ def retroproxy_root( path ):
     ctype = response.headers['content-type']
     ctype_match = HTML_TYPE_PATTERN.match( ctype )
     if ctype_match:
-        text = util.process_html_links( response.text, url_port=url_port )
-        text = util.process_html_imgs( text, url_port=url_port )
-        out = Response( text, mimetype=ctype )
+        soup = BeautifulSoup( response.text, 'html.parser' )
+        util.process_html_links( soup, url_port=url_port )
+        util.process_html_imgs( soup, url_port=url_port )
+        util.process_html_forms( soup, url_port=url_port )
+        out = Response( str( soup ), mimetype=ctype )
         out.headers = orig_headers
         return out
     else:

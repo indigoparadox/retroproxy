@@ -1,7 +1,6 @@
 
 import re
 import logging
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urlunsplit
 
 ARCHIVE_PATTERN = re.compile(
@@ -21,16 +20,15 @@ def fix_netloc_port( url_in, url_port ):
     else:
         return url_in
 
-def process_html_links( text, url_port=80 ):
+def process_html_links( soup, url_port=80 ):
 
     logger = logging.getLogger( 'process.html.links' )
 
-    soup = BeautifulSoup( text, 'html.parser' )
     for a in soup.findAll( 'a' ):
         try:
             logger.info( a['href'] )
             href = ARCHIVE_PATTERN.sub( '', a['href'] )
-            logger.info( '{} became: {}'.format( a['href'], href ) )
+            logger.debug( '{} became: {}'.format( a['href'], href ) )
             a['href'] = href
     
             # Add our listening port to the netloc.
@@ -45,6 +43,7 @@ def process_html_links( text, url_port=80 ):
             if link['href'].startswith( '/_static/' ):
                 #link['href'] = \
                 #    'https://web.archive.org{}'.format( link['href'] )
+                logger.debug( 'removing link' )
                 link.extract()
         except Exception as e:
             logger.warning( e )
@@ -68,16 +67,12 @@ def process_html_links( text, url_port=80 ):
         'WB_wombat_Init' in script.text or \
         '__wbhack.init' in script.text or \
         'archive_analytics.values' in script.text:
-            logger.info( 'removing script' )
+            logger.debug( 'removing script' )
             script.extract()
 
-    return str( soup )
-
-def process_html_imgs( text, url_port=80 ):
+def process_html_imgs( soup, url_port=80 ):
 
     logger = logging.getLogger( 'process.html.links' )
-
-    soup = BeautifulSoup( text, 'html.parser' )
 
     # Fix for images relative to web.archive.org.
     #for img in soup.findAll( 'img' ):
@@ -91,6 +86,15 @@ def process_html_imgs( text, url_port=80 ):
             img['src'] = fix_netloc_port( img['src'], url_port )
         except Exception as e:
             logger.warning( e )
-
-    return str( soup )
  
+def process_html_forms( soup, url_port=80 ):
+
+    logger = logging.getLogger( 'process.html.forms' )
+
+    for form in soup.findAll( 'form' ):
+        try:
+            action = ARCHIVE_PATTERN.sub( '', form['action'] )
+            form['action'] = fix_netloc_port( action, url_port )
+        except Exception as e:
+            logger.warning( e )
+

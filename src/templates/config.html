@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 
 {% block scripts %}
+<link rel="stylesheet" href="{{ url_for( 'static', filename='desktop.css' ) }}" />
 <script
   src="https://code.jquery.com/jquery-3.4.1.min.js"
   integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
@@ -9,8 +10,9 @@
   src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"
   integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU="
   crossorigin="anonymous"></script>
+<script src="{{ url_for( 'static', filename='interface.js' ) }}"></script>
 {% endblock %}
 
 {% block content %}
-
+<div id="desktop"></div>
 {% endblock %}

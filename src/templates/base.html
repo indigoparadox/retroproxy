@@ -2,6 +2,9 @@
 <html>
     <head>
         <title>{{ title }}</title>
+        <script type="text/javascript">
+        var staticPath = "{{ url_for( 'static', filename='' ) }}";
+        </script>
         {% block scripts %}{% endblock %}
     </head>
     <body>

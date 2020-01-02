@@ -1,0 +1,153 @@
+
+html, body {
+    background-color: #00787f;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+#desktop {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.window-outer {
+    /* Use border and positioning to simulate shadow effect. */
+    border-top: 1px solid #bfbfbf;
+    border-left: 1px solid #bfbfbf;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    background-color: #bfbfbf;
+    position: relative;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    z-index: 20;
+}
+
+.window-inner {
+    /* Use border and positioning to simulate shadow effect. */
+    border-top: 1px solid #fff8ff;
+    border-left: 1px solid #fff8ff;
+    border-right: 1px solid #7f787f;
+    border-bottom: 1px solid #7f787f;
+    position: relative;
+    padding: 1px;
+
+    /* Arbitrary. */
+    min-width: 200px;
+    min-height: 100px;
+}
+
+.titlebar {
+    /* Flex so that title text can grow. */
+    display: flex;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 18px;
+}
+
+.titlebar-icon {
+    display: inline-block;
+    position: relative;
+    margin: 1px;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+}
+
+.titlebar-text {
+    font-family: Microsoft Sans Serif, MS Sans Serif, sans-serif;
+    font-size: 12px; /* Rare text sizing in pixels for accuracy. */
+    line-height: 18px;
+    display: inline-block;
+    position: relative;
+    margin: 0 3px;
+    padding: 0;
+    height: 18px;
+    flex-grow: 1;
+}
+
+.window-active .titlebar {
+    background-color: #00007f;
+    color: white;
+}
+
+.window-inactive .titlebar {
+    background-color: #7f787f;
+}
+
+.titlebar-close {
+    width: 14px;
+    height: 14px;
+    margin: 2px;
+    padding: 0;
+}
+
+.window-form {
+    position: relative;
+}
+
+.input-text-wrapper {
+    /* Use border and positioning to simulate shadow effect. */
+    border-top: 1px solid #7f787f;
+    border-left: 1px solid #7f787f;
+    border-bottom: 1px solid #fff8ff;
+    border-right: 1px solid #fff8ff;
+
+    display: inline-block;
+    position: absolute;
+}
+
+.input-text-wrapper input {
+    /* Use border and positioning to simulate shadow effect. */
+    border-top: 1px solid black;
+    border-left: 1px solid black;
+    border-bottom: 1px solid #bfbfbf;
+    border-right: 1px solid #bfbfbf;
+
+    padding: 1px 2px;
+}
+
+.input-text-wrapper input:focus {
+    outline: none;
+}
+
+.desktop-icon {
+    display: inline-block;
+    position: relative;
+    padding: 0;
+}
+
+.desktop-icon-overlay {
+    padding: 5px;
+    position: absolute;
+    left: -5px; /* Cover parent padding. */
+    top: -5px; /* Cover parent padding. */
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+
+.desktop-icon-img {
+    display: block;
+    width: 32px;
+    height: 32px;
+}
+
+.desktop-icon-text {
+    color: white;
+    font-family: Microsoft Sans Serif, MS Sans Serif, sans-serif;
+    font-size: 12px; /* Rare text sizing in pixels for accuracy. */
+    line-height: 18px;
+    text-align: center;
+}
+
+.desktop-icon-selected .desktop-icon-overlay {
+    background: #00007f;
+    opacity: 0.3;
+}

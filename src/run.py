@@ -9,5 +9,5 @@ if '__main__' == __name__:
     logging.basicConfig( level=logging.INFO )
     logger = logging.getLogger( 'main' )
     
-    app.run()
+    app.run( host='0.0.0.0', port=80 )
 

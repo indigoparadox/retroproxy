@@ -6,11 +6,15 @@ import io
 from urllib.parse import urlparse, urlunsplit
 from flask import current_app, render_template, request, abort, Response, send_file
 from bs4 import BeautifulSoup
-from . import util
+from . import proxy
 
 PORT_PATTERN = re.compile( r'(.*)(:[0-9]*)$' )
 HTML_TYPE_PATTERN = re.compile( r'^([a-zA-Z]*/(html|HTML)).*' )
 HEADER_ORIG_PATTERN = re.compile( r'^X-Archive-Orig-(.*)$' )
+
+@current_app.route( '/retroproxy/config' )
+def retroproxy_config():
+    return render_template( 'config.html' )
 
 @current_app.route( '/', defaults={'path': ''} )
 @current_app.route( '/<path:path>' )
@@ -61,9 +65,9 @@ def retroproxy_root( path ):
     ctype_match = HTML_TYPE_PATTERN.match( ctype )
     if ctype_match:
         soup = BeautifulSoup( response.text, 'html.parser' )
-        util.process_html_links( soup, url_port=url_port )
-        util.process_html_imgs( soup, url_port=url_port )
-        util.process_html_forms( soup, url_port=url_port )
+        proxy.process_html_links( soup, url_port=url_port )
+        proxy.process_html_imgs( soup, url_port=url_port )
+        proxy.process_html_forms( soup, url_port=url_port )
         out = Response( str( soup ), mimetype=ctype )
         out.headers = orig_headers
         return out

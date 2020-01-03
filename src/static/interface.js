@@ -8,4 +8,21 @@ $(document).ready( function() {
             var input_txt = windowCreateInputText( win_foo, 'Date', '', '10px', '10px' );
         }
     } );
+
+    $('#desktop').mousedown( function( e ) {
+        if( $(e.target).hasClass( 'container' ) ) {
+            desktopSelectIcon( e.target, null );
+            desktopCloseMenu( e.target, null );
+        }
+    } );
+
+    $('#desktop').contextmenu( function( e ) {
+        var menu = desktopPopupMenu( '#desktop', [
+            {'text': 'Arrange Icons', 'callback': function( m ) {
+            }},
+            {'text': 'Properties', 'callback': function( m ) {
+            }}
+        ], e.pageX, e.pageY );
+        e.preventDefault();
+    } );
 } );

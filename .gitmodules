@@ -1,3 +1,3 @@
 [submodule "src/static/desktop-1995"]
-	path = src/static/desktop-1995
+	path = retroproxy/static/desktop-1995
 	url = https://github.com/indigoparadox/desktop-1995

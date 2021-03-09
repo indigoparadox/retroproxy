@@ -3,98 +3,108 @@ import re
 import logging
 from urllib.parse import urlparse, urlunsplit
 
+from bs4 import BeautifulSoup
+
 ARCHIVE_PATTERN = re.compile(
     r'^(https?://web.archive.org)?/web/[0-9a-z_]*/' )
+URL_PORT_PATTERN = re.compile( r'(?P<netloc>.*?)(?P<port>:[0-9]*)?$' )
 
-def fix_netloc_port( url_in, url_port ):
+class RetroProxy( BeautifulSoup ):
 
-    ''' Given a URL, insert the given listening port next to the host. '''
+    def __init__( self, text, url_port, *args, **kwargs ):
+        super().__init__( text, 'html.parser', *args, **kwargs )
+        self.url_port = str( url_port )
+        self.logger = logging.getLogger( 'retroproxy' )
 
-    nl_url = urlparse( url_in )
-    if nl_url.netloc:
-        netloc = nl_url.netloc + url_port
-        return urlunsplit(
-            (nl_url.scheme, netloc, nl_url.path,
-            nl_url.query, nl_url.fragment) )
+    def fix_netloc_port( self, url_in ):
 
-    else:
-        return url_in
+        ''' Given a URL, insert the given listening port next to the host. '''
 
-def process_html_links( soup, url_port=80 ):
+        nl_url = urlparse( url_in )
+        if nl_url.netloc:
+            #netloc_match = URL_PORT_PATTERN.match( nl_url.netloc )
+            #print( netloc_match.groupdict() )
+            #print( nl_url.hostname )
+            netloc = nl_url.hostname + ':' + self.url_port
+            return urlunsplit(
+                (nl_url.scheme, netloc, nl_url.path,
+                nl_url.query, nl_url.fragment) )
 
-    logger = logging.getLogger( 'process.html.links' )
+        else:
+            return url_in
 
-    for a in soup.findAll( 'a' ):
-        try:
-            logger.info( a['href'] )
-            href = ARCHIVE_PATTERN.sub( '', a['href'] )
-            logger.debug( '{} became: {}'.format( a['href'], href ) )
-            a['href'] = href
-    
-            # Add our listening port to the netloc.
-            a['href'] = fix_netloc_port( a['href'], url_port )
-        except Exception as e:
-            logger.warning( e )
+    def process_html_resources( self ):
 
-    # Fix for static CSS.
-    # TODO: Should these just be stripped?
-    for link in soup.findAll( 'link' ):
-        try:
-            if link['href'].startswith( '/_static/' ):
-                #link['href'] = \
-                #    'https://web.archive.org{}'.format( link['href'] )
-                logger.debug( 'removing link' )
-                link.extract()
-        except Exception as e:
-            logger.warning( e )
+        # Fix for static CSS.
+        # TODO: Should these just be stripped?
+        for link in self.findAll( 'link' ):
+            try:
+                if link['href'].startswith( '/_static/' ):
+                    #link['href'] = \
+                    #    'https://web.archive.org{}'.format( link['href'] )
+                    self.logger.debug( 'removing link' )
+                    link.extract()
+                else:
+                    link['href'] = self.fix_netloc_port( link['href'] )
+            except Exception as exc:
+                self.logger.warning( exc )
 
-   # Fix for optional base tag.
-    for base in soup.findAll( 'base' ):
-        try:
-            base['href'] = ARCHIVE_PATTERN.sub( '', base['href'] )
+        # Strip out archive modernity hacks.
+        for script in self.findAll( 'script', ):
+            if 'src' in script.attrs and (
+            'client-rewrite.js' in script.attrs['src'] or \
+            'wbhack.js' in script.attrs['src'] or \
+            'archive.org/includes/analytics.js' in script.attrs['src'] ) or \
+            'wbhack.' in script.text or \
+            'WB_wombat_Init' in script.text or \
+            '__wbhack.init' in script.text or \
+            'archive_analytics.values' in script.text:
+                self.logger.debug( 'removing script' )
+                script.extract()
 
-            base['href'] = fix_netloc_port( base['href'], url_port )
-        except Exception as e:
-            logger.warning( e )
+    def process_html_links( self ):
 
-    # Strip out archive modernity hacks.
-    for script in soup.findAll( 'script', ):
-        if 'src' in script.attrs and (
-        'client-rewrite.js' in script.attrs['src'] or \
-        'wbhack.js' in script.attrs['src'] or \
-        'archive.org/includes/analytics.js' in script.attrs['src'] ) or \
-        'wbhack.' in script.text or \
-        'WB_wombat_Init' in script.text or \
-        '__wbhack.init' in script.text or \
-        'archive_analytics.values' in script.text:
-            logger.debug( 'removing script' )
-            script.extract()
+        for a in self.findAll( 'a' ):
+            try:
+                #self.logger.info( a['href'] )
+                href = ARCHIVE_PATTERN.sub( '', a['href'] )
+                self.logger.debug( '%s became: %s', a['href'], href )
+                a['href'] = href
 
-def process_html_imgs( soup, url_port=80 ):
+                # Add our listening port to the netloc.
+                a['href'] = self.fix_netloc_port( a['href'] )
+            except Exception as exc:
+                self.logger.warning( exc )
 
-    logger = logging.getLogger( 'process.html.links' )
+        # Fix for optional base tag.
+        for base in self.findAll( 'base' ):
+            try:
+                base['href'] = ARCHIVE_PATTERN.sub( '', base['href'] )
 
-    # Fix for images relative to web.archive.org.
-    #for img in soup.findAll( 'img' ):
-    #    if img['src'].startswith( '/web/' ):
-    #        img['src'] = 'https://web.archive.org{}'.format( img['src'] )
+                base['href'] = self.fix_netloc_port( base['href'] )
+            except Exception as exc:
+                self.logger.warning( exc )
 
-    # Fix for all images.
-    for img in soup.findAll( 'img' ):
-        try:
-            img['src'] = ARCHIVE_PATTERN.sub( '', img['src'] )
-            img['src'] = fix_netloc_port( img['src'], url_port )
-        except Exception as e:
-            logger.warning( e )
- 
-def process_html_forms( soup, url_port=80 ):
+    def process_html_imgs( self ):
 
-    logger = logging.getLogger( 'process.html.forms' )
+        # Fix for images relative to web.archive.org.
+        #for img in self.findAll( 'img' ):
+        #    if img['src'].startswith( '/web/' ):
+        #        img['src'] = 'https://web.archive.org{}'.format( img['src'] )
 
-    for form in soup.findAll( 'form' ):
-        try:
-            action = ARCHIVE_PATTERN.sub( '', form['action'] )
-            form['action'] = fix_netloc_port( action, url_port )
-        except Exception as e:
-            logger.warning( e )
+        # Fix for all images.
+        for img in self.findAll( 'img' ):
+            try:
+                img['src'] = ARCHIVE_PATTERN.sub( '', img['src'] )
+                img['src'] = self.fix_netloc_port( img['src']  )
+            except Exception as exc:
+                self.logger.warning( exc )
 
+    def process_html_forms( self ):
+
+        for form in self.findAll( 'form' ):
+            try:
+                action = ARCHIVE_PATTERN.sub( '', form['action'] )
+                form['action'] = self.fix_netloc_port( action )
+            except Exception as exc:
+                self.logger.warning( exc )

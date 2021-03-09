@@ -10,7 +10,7 @@
             "request": "launch",
             "module": "flask",
             "env": {
-                "FLASK_APP": "src/run.py",
+                "FLASK_APP": "retroproxy",
                 "FLASK_ENV": "development",
                 "FLASK_DEBUG": "0"
             },

@@ -2,11 +2,11 @@
 import unittest
 import os
 import sys
-from urllib.parse import urlparse, urlunsplit
+from urllib.parse import urlparse
 
 sys.path.insert( 0, os.path.dirname( os.path.dirname( __file__ ) ) )
 
-from retroproxy.proxy import RetroProxy
+from retroproxy.filter import RetroFilter
 
 TEST_URLS = [
     'https://google.com',
@@ -39,7 +39,7 @@ class TestRetroProxy( unittest.TestCase ):
     def test_fix_netloc_port( self ):
 
         body = TEST_URL_FRAME
-        parser = RetroProxy( body, 8888 )
+        parser = RetroFilter( body, 8888 )
 
         for url in TEST_URLS:
             url_fixed = parser.fix_netloc_port( url )
@@ -53,20 +53,20 @@ class TestRetroProxy( unittest.TestCase ):
 
         for url in TEST_URLS:
             body = TEST_URL_FRAME.replace( '%l', url )
-            parser = RetroProxy( body, 8888 )
+            parser = RetroFilter( body, 8888 )
 
             parser.process_html_links()
 
             if 'about:blank' != url and '/help.html' != url:
                 self.assertRegex( str( parser ), r'https?://.*?:8888' )
 
-    def test_process_html_resources( self ):
+    def test_process_html_scripts( self ):
 
         for url in TEST_URLS:
             body = TEST_URL_FRAME.replace( '%s', url )
-            parser = RetroProxy( body, 8888 )
+            parser = RetroFilter( body, 8888 )
 
-            parser.process_html_resources()
+            parser.process_html_scripts()
 
             if 'about:blank' != url and '/help.html' != url:
                 self.assertRegex( str( parser ), r'https?://.*?:8888' )
@@ -75,7 +75,7 @@ class TestRetroProxy( unittest.TestCase ):
 
         for url in TEST_URLS:
             body = TEST_URL_FRAME.replace( '%i', url )
-            parser = RetroProxy( body, 8888 )
+            parser = RetroFilter( body, 8888 )
 
             parser.process_html_imgs()
 
@@ -86,7 +86,7 @@ class TestRetroProxy( unittest.TestCase ):
 
         for url in TEST_URLS:
             body = TEST_URL_FRAME.replace( '%f', url )
-            parser = RetroProxy( body, 8888 )
+            parser = RetroFilter( body, 8888 )
 
             parser.process_html_forms()
 

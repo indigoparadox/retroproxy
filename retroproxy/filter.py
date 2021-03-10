@@ -3,13 +3,16 @@ import re
 import logging
 from urllib.parse import urlparse, urlunsplit
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 
 ARCHIVE_PATTERN = re.compile(
     r'^(https?://web.archive.org)?/web/[0-9a-z_]*/' )
 URL_PORT_PATTERN = re.compile( r'(?P<netloc>.*?)(?P<port>:[0-9]*)?$' )
+FILE_ARCHIVED_PATTERN = re.compile(
+    r'<!--.*FILE\s*ARCHIVED\s*ON.*AND\s*RETRIEVED\s*' + \
+    r'FROM\s*THE\s*INTERNET\s*ARCHIVE.*?-->' )
 
-class RetroProxy( BeautifulSoup ):
+class RetroFilter( BeautifulSoup ):
 
     def __init__( self, text, url_port, *args, **kwargs ):
         super().__init__( text, 'html.parser', *args, **kwargs )
@@ -33,7 +36,25 @@ class RetroProxy( BeautifulSoup ):
         else:
             return url_in
 
-    def process_html_resources( self ):
+    def cleanup_archive_org( self ):
+
+        for comment in self.find_all( string=lambda x: isinstance( x, Comment ) ):
+            comment : Comment
+            if 'INTERNET ARCHIVE' in comment or \
+            'playback timings' in comment:
+                comment.extract()
+                continue
+
+            if 'BEGIN WAYBACK TOOLBAR' in comment:
+                next_tag = comment.next_element
+                while 'END WAYBACK TOOLBAR' not in next_tag:
+                    this_tag = next_tag
+                    next_tag = next_tag.next_sibling
+                    this_tag.extract()
+                next_tag.extract() # Get rid of the "END" comment.
+                comment.extract() # Get rid of the "BEGIN" comment.
+
+    def process_html_scripts( self ):
 
         # Fix for static CSS.
         # TODO: Should these just be stripped?
@@ -50,17 +71,25 @@ class RetroProxy( BeautifulSoup ):
                 self.logger.warning( exc )
 
         # Strip out archive modernity hacks.
-        for script in self.findAll( 'script', ):
+        for script in self.findAll( 'script' ):
             if 'src' in script.attrs and (
             'client-rewrite.js' in script.attrs['src'] or \
             'wbhack.js' in script.attrs['src'] or \
-            'archive.org/includes/analytics.js' in script.attrs['src'] ) or \
-            'wbhack.' in script.text or \
-            'WB_wombat_Init' in script.text or \
-            '__wbhack.init' in script.text or \
-            'archive_analytics.values' in script.text:
+            'wombat.js' in script.attrs['src'] or \
+            'playback.bundle.js' in script.attrs['src'] or \
+            'archive.org/includes/analytics.js' in script.attrs['src'] ):
                 self.logger.debug( 'removing script' )
                 script.extract()
+                continue
+
+            if 'wbhack.' in str( script ) or \
+            'WB_wombat_Init' in str( script ) or \
+            '__wbhack.init' in str( script ) or \
+            '__wm.wombat' in str( script ) or \
+            'archive_analytics.values' in str( script ):
+                self.logger.debug( 'removing script' )
+                script.extract()
+                continue
 
     def process_html_links( self ):
 

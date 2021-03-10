@@ -1,15 +1,17 @@
 
-FROM tiangolo/uwsgi-nginx:python3.7-alpine3.7
+FROM alpine:3.7
+RUN apk add --no-cache python3 py3-pip
+
+# Temporarily install files for Python C extension compiles.
+RUN apk add --no-cache --virtual .build-deps python3-dev gcc musl-dev
 
 # Copy app files.
-COPY src/static /app/static
-COPY src/templates /app/templates
-COPY src/*.py /app/
-COPY src/uwsgi.ini /app/
+COPY . /app/
+WORKDIR /app/
+RUN pip3 install --upgrade pip
+RUN pip3 install .
 
-# Setup Python dependencies.
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+# Remove temporarily installed files.
+RUN apk del .build-deps
 
-
-
+CMD ["python3", "-m", "retroproxy", "-a", "0.0.0.0"]

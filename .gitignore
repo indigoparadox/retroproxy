@@ -1,6 +1,7 @@
 env
 env2
 env3
+.venv
 __pycache__
 *.swp
 *.pyc
